@@ -647,6 +647,8 @@ static NSInteger _databaseOpenCount = 0;
                                    details:nil]);
         return;
     }
+    
+    __block FlutterError* openError = nil;
 
     [queue inDatabase:^(FMDatabase *database) {
         if (password == nil) {
@@ -662,6 +664,11 @@ static NSInteger _databaseOpenCount = 0;
             return;
         }
         NSLog(@"Opening db in %@ with PRAGMA cipher_migrate", path);
+        
+        if (password != nil) {
+            NSString *keyPragma = [NSString stringWithFormat:@"PRAGMA key = '%@'", password];
+            [database executeStatements:keyPragma];
+        }
         
         FMResultSet *migrateResult = [database executeQuery:@"PRAGMA cipher_migrate"];
         if (migrateResult == nil) {
