@@ -663,7 +663,47 @@ static NSInteger _databaseOpenCount = 0;
                                       details:nil]);
             return;
         }
+        NSLog(@"Opening db in %@ with PRAGMA cipher_migrate", path);
+        
+        FMResultSet *migrateResult = [database executeQuery:@"PRAGMA cipher_migrate"];
+        if (migrateResult == nil) {
+            // cipher_migrate itself failed to execute
+            openError = [FlutterError errorWithCode:_sqliteErrorCode
+                                                    message:[NSString stringWithFormat:@"%@ %@", _errorOpenFailed, path]
+                                                   details:nil];
+            return;
+        }
+        long migrateStatus = -1;
+        if ([migrateResult next]) {
+            migrateStatus = [migrateResult longForColumnIndex:0];
+        }
+        [migrateResult close];
+        
+        if (migrateStatus != 0) {
+            // Migration failed — same as Android throwing the original exception
+            // assuming a wrong password was provided
+            NSLog(@"cipher_migrate failed (status %ld) for %@ — wrong password?", migrateStatus, path);
+            openError = [FlutterError errorWithCode:_sqliteErrorCode
+                                                message:[NSString stringWithFormat:@"%@ %@", _errorOpenFailed, path]
+                                                   details:nil];
+            return;
+        }
+        
+        // Migration succeeded — verify the database is now readable
+        FMResultSet *verify = [database executeQuery:@"SELECT COUNT(*) FROM sqlite_schema"];
+        if (verify == nil) {
+            openError = [FlutterError errorWithCode:_sqliteErrorCode
+                                                    message:[NSString stringWithFormat:@"%@ %@", _errorOpenFailed, path]
+                                                   details:nil];
+            return;
+        }
+        [verify close];
     }];
+    
+    if (openError != nil) {
+        result(openError);
+        return;
+    }
     
     NSNumber* databaseId;
     @synchronized (self.mapLock) {
