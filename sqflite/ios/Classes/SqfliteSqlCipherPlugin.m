@@ -657,10 +657,8 @@ static NSInteger _databaseOpenCount = 0;
         
         // Actually query the database in order to check the password is correct
         FMResultSet *s = [database executeQuery:@"SELECT COUNT(*) FROM sqlite_schema"];
-        if (s == nil) {
-            result([FlutterError errorWithCode:_sqliteErrorCode
-                                       message:[NSString stringWithFormat:@"%@ %@", _errorOpenFailed, path]
-                                      details:nil]);
+        if (s != nil) {
+            [s close];
             return;
         }
         NSLog(@"Opening db in %@ with PRAGMA cipher_migrate", path);
