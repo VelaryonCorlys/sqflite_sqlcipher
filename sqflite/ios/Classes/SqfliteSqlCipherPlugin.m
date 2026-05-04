@@ -695,7 +695,7 @@ static NSInteger _databaseOpenCount = 0;
         }
         
         // Migration succeeded — verify the database is now readable
-        FMResultSet *verify = [database executeQuery:@"SELECT COUNT(*) FROM sqlite_schema"];
+        FMResultSet *verify = [database executeQuery:@"SELECT 1 FROM sqlite_schema LIMIT 1;"];
         if (verify == nil) {
             openError = [FlutterError errorWithCode:_sqliteErrorCode
                                                     message:[NSString stringWithFormat:@"%@ %@", _errorOpenFailed, path]
